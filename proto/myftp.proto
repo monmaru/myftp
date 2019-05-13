@@ -1,0 +1,22 @@
+syntax = "proto3";
+package myftp;
+
+message UploadRequest {
+  bytes Content = 1;
+  string FileName = 2;
+}
+
+message UploadResponse {
+  string Message = 1;
+  UploadStatus Status = 2;
+}
+
+enum UploadStatus {
+  Unknown = 0;
+  Ok = 1;
+  Failed = 2;
+}
+
+service FtpService {
+  rpc Upload(stream UploadRequest) returns (UploadResponse);
+}
