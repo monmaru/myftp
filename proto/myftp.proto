@@ -1,5 +1,5 @@
 syntax = "proto3";
-package myftp;
+package proto;
 
 message UploadRequest {
   bytes Content = 1;
@@ -12,11 +12,9 @@ message UploadResponse {
 }
 
 enum UploadStatus {
-  Unknown = 0;
-  Ok = 1;
-  Failed = 2;
+  UNKNOWN = 0;
+  OK = 1;
+  FAILED = 2;
 }
 
-service FtpService {
-  rpc Upload(stream UploadRequest) returns (UploadResponse);
-}
+service Ftp { rpc Upload(stream UploadRequest) returns (UploadResponse); }
