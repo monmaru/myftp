@@ -8,22 +8,20 @@ import (
 	"path"
 	"path/filepath"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 )
 
 // Listen ...
 func Listen(cfg Config) (func(), error) {
 	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
-
-	listener, err := net.Listen("tcp", cfg.Address)
-	if err != nil {
 		return nil, err
 	}
 
@@ -41,19 +39,32 @@ func Listen(cfg Config) (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-
 	grpc_zap.ReplaceGrpcLogger(zapLogger)
-	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(
+
+	grpcOpts = append(grpcOpts, grpc.StreamInterceptor(
+		grpc_middleware.ChainStreamServer(
 			grpc_zap.StreamServerInterceptor(zapLogger),
+			grpc_recovery.StreamServerInterceptor(
+				grpc_recovery.WithRecoveryHandler(func(p interface{}) (err error) {
+					zapLogger.Fatal(fmt.Sprintf("panic: %+v\n", p))
+					return grpc.Errorf(codes.Internal, "Unexpected error")
+				}),
+			),
 		),
-	)
+	))
+
+	grpcServer := grpc.NewServer(grpcOpts...)
 
 	ftpServer := &ftpServer{
 		destDir: cfg.DestDir,
 		logger:  zapLogger,
 	}
 	proto.RegisterFtpServer(grpcServer, ftpServer)
+
+	listener, err := net.Listen("tcp", cfg.Address)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := grpcServer.Serve(listener); err != nil {
 		return nil, err
@@ -128,14 +139,14 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 	return nil
 }
 
-func initFile(filePath string) (*os.File, error) {
-	if exists(filePath) {
-		return os.OpenFile(filePath, os.O_WRONLY, 0666)
+func initFile(path string) (*os.File, error) {
+	if exists(path) {
+		return os.OpenFile(path, os.O_WRONLY, 0666)
 	}
-	return os.Create(filePath)
+	return os.Create(path)
 }
 
-func exists(filename string) bool {
-	_, err := os.Stat(filename)
+func exists(path string) bool {
+	_, err := os.Stat(path)
 	return err == nil
 }

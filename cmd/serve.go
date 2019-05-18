@@ -12,14 +12,12 @@ func Serve() cli.Command {
 	return cli.Command{
 		Name:  "serve",
 		Usage: "initiates a gRPC server",
-
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "a",
 				Usage: "Address to listen",
 				Value: "localhost:5000",
 			},
-
 			&cli.StringFlag{
 				Name:  "key",
 				Usage: "TLS certificate key",
