@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/hashicorp/go-multierror"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
@@ -105,7 +106,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 	}
 	defer f.Close()
 
-	ftp, err := u.cli.Upload(ctx)
+	ftp, err := u.cli.Upload(ctx, grpc_retry.WithMax(3))
 	if err != nil {
 		return err
 	}
@@ -116,9 +117,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 		return err
 	}
 
-	bar := pb.New64(stat.Size()).
-		Postfix(" " + f.Name()).
-		SetUnits(pb.U_BYTES)
+	bar := pb.New64(stat.Size()).Postfix(" " + f.Name()).SetUnits(pb.U_BYTES)
 	u.pool.Add(bar)
 
 	buf := make([]byte, 64*1024 /* 64KiB */)
