@@ -25,8 +25,8 @@ func Serve() cli.Command {
 				Usage: "TLS certificate key",
 			},
 			&cli.StringFlag{
-				Name:  "certificate",
-				Usage: "path to TLS certificate",
+				Name:  "cert",
+				Usage: "path to the TLS *.crt file",
 			},
 			&cli.StringFlag{
 				Name:  "d",
@@ -37,12 +37,12 @@ func Serve() cli.Command {
 		Action: func(c *cli.Context) error {
 			cfg := server.Config{
 				Address:     c.String("a"),
-				Certificate: c.String("certificate"),
+				Certificate: c.String("cert"),
 				Key:         c.String("key"),
 				DestDir:     c.String("d"),
 			}
 
-			close, err := server.Start(cfg)
+			close, err := server.Listen(cfg)
 			if err != nil {
 				fmt.Println(err.Error())
 				return err

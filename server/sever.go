@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// Start ...
-func Start(cfg Config) (func(), error) {
+// Listen ...
+func Listen(cfg Config) (func(), error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
