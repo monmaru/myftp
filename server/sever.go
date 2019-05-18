@@ -8,8 +8,10 @@ import (
 	"path"
 	"path/filepath"
 
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -22,43 +24,55 @@ func Listen(cfg Config) (func(), error) {
 
 	listener, err := net.Listen("tcp", cfg.Address)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to listen on  %d", cfg.Address)
+		return nil, err
 	}
 
 	grpcOpts := []grpc.ServerOption{}
 	if cfg.Certificate != "" && cfg.Key != "" {
 		grpcCreds, err := credentials.NewServerTLSFromFile(cfg.Certificate, cfg.Key)
 		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to create tls grpc server using cert %s and key %s",
-				cfg.Certificate,
-				cfg.Key)
+			return nil, err
 		}
 
 		grpcOpts = append(grpcOpts, grpc.Creds(grpcCreds))
 	}
 
-	grpcServer := grpc.NewServer(grpcOpts...)
-	proto.RegisterFtpServer(grpcServer, &FtpServer{DestDir: cfg.DestDir})
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		return nil, err
+	}
+
+	grpc_zap.ReplaceGrpcLogger(zapLogger)
+	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(
+			grpc_zap.StreamServerInterceptor(zapLogger),
+		),
+	)
+
+	ftpServer := &ftpServer{
+		destDir: cfg.DestDir,
+		logger:  zapLogger,
+	}
+	proto.RegisterFtpServer(grpcServer, ftpServer)
 
 	if err := grpcServer.Serve(listener); err != nil {
-		return nil, errors.Wrap(err, "errored listening for grpc connections")
+		return nil, err
 	}
 
 	return func() {
 		grpcServer.Stop()
+		zapLogger.Sync()
 	}, nil
 }
 
-// FtpServer ...
-type FtpServer struct {
-	DestDir string
+type ftpServer struct {
+	destDir string
+	logger  *zap.Logger
 }
 
 // Upload ...
-func (s *FtpServer) Upload(stream proto.Ftp_UploadServer) error {
-	fmt.Println("-------- Start upload function --------")
+func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
+	s.logger.Info("-------- Start upload function --------")
 	var f *os.File
 	defer func() {
 		if f != nil {
@@ -72,7 +86,7 @@ func (s *FtpServer) Upload(stream proto.Ftp_UploadServer) error {
 			if err == io.EOF {
 				break
 			}
-			return errors.Wrap(err, "failed reading chunks from stream")
+			return errors.Wrap(err, "Failed reading chunks from stream")
 		}
 
 		if len(fileData.FileName) == 0 {
@@ -84,7 +98,7 @@ func (s *FtpServer) Upload(stream proto.Ftp_UploadServer) error {
 		}
 
 		if f == nil {
-			f, err = initFile(path.Join(s.DestDir, filepath.Base(fileData.FileName)))
+			f, err = initFile(path.Join(s.destDir, filepath.Base(fileData.FileName)))
 			if err != nil {
 				stream.SendAndClose(&proto.UploadResponse{
 					Message: fmt.Sprintf("Failed to create file : %s", fileData.FileName),
@@ -110,7 +124,7 @@ func (s *FtpServer) Upload(stream proto.Ftp_UploadServer) error {
 		return err
 	}
 
-	fmt.Println("-------- Finished upload function --------")
+	s.logger.Info("-------- Finished upload function --------")
 	return nil
 }
 
