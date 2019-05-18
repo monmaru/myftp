@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"log"
+
+	"github.com/monmaru/myftp/client"
 	"github.com/urfave/cli"
 )
 
@@ -21,13 +24,27 @@ func Upload() cli.Command {
 				Usage: "base directory",
 			},
 			cli.StringFlag{
-				Name:  "certificate",
+				Name:  "cert",
 				Value: "",
-				Usage: "directory to the TLS server.crt file",
+				Usage: "path to the TLS *.crt file",
+			},
+			cli.IntFlag{
+				Name:  "p",
+				Value: 5,
+				Usage: "num of goroutines",
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return nil
+			err := client.Upload(client.Config{
+				Address:     c.String("a"),
+				Certificate: c.String("cert"),
+				SrcDir:      c.String("d"),
+				Parallelism: c.Int("p"),
+			})
+			if err != nil {
+				log.Println(err)
+			}
+			return err
 		},
 	}
 }
