@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"path"
 	"path/filepath"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -109,7 +108,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		}
 
 		if f == nil {
-			f, err = initFile(path.Join(s.destDir, filepath.Base(fileData.FileName)))
+			f, err = initFile(filepath.Join(s.destDir, filepath.Base(fileData.FileName)))
 			if err != nil {
 				stream.SendAndClose(&proto.UploadResponse{
 					Message: fmt.Sprintf("Failed to create file : %s", fileData.FileName),

@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -91,7 +91,7 @@ func (u *uploaderImpl) uploadFilesInParallel(ctx context.Context) <-chan error {
 				}()
 
 				ret <- u.do(ctx, s)
-			}(path.Join(u.dir, fi.Name()))
+			}(filepath.Join(u.dir, fi.Name()))
 		}
 		wg.Wait()
 	}()
@@ -106,11 +106,11 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 	}
 	defer f.Close()
 
-	ftp, err := u.cli.Upload(ctx, grpc_retry.WithMax(3))
+	stream, err := u.cli.Upload(ctx, grpc_retry.WithMax(3))
 	if err != nil {
 		return err
 	}
-	defer ftp.CloseSend()
+	defer stream.CloseSend()
 
 	stat, err := f.Stat()
 	if err != nil {
@@ -132,7 +132,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 			return err
 		}
 
-		if err := ftp.Send(&proto.UploadRequest{
+		if err := stream.Send(&proto.UploadRequest{
 			Content:  buf[:n],
 			FileName: path,
 		}); err != nil {
@@ -143,7 +143,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 		bar.Add64(int64(n))
 	}
 
-	resp, err := ftp.CloseAndRecv()
+	resp, err := stream.CloseAndRecv()
 	if err != nil {
 		bar.FinishPrint(fmt.Sprintf("Failed uploading file : %s", err.Error()))
 		return err
