@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/monmaru/myftp/server"
 	"github.com/urfave/cli"
@@ -42,7 +42,7 @@ func Serve() cli.Command {
 
 			close, err := server.Listen(cfg)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Println(err)
 				return err
 			}
 

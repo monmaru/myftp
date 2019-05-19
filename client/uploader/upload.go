@@ -117,7 +117,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 		return err
 	}
 
-	bar := pb.New64(stat.Size()).Postfix(" " + f.Name()).SetUnits(pb.U_BYTES)
+	bar := pb.New64(stat.Size()).Postfix(" " + filepath.Base(f.Name())).SetUnits(pb.U_BYTES)
 	u.pool.Add(bar)
 
 	buf := make([]byte, 64*1024 /* 64KiB */)
