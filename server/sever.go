@@ -34,10 +34,7 @@ func Listen(cfg Config) (func(), error) {
 		grpcOpts = append(grpcOpts, grpc.Creds(grpcCreds))
 	}
 
-	zapLogger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
-	}
+	zapLogger := newFileRotateLogger(filepath.Join(cfg.LogDir, "ftp.log"))
 	grpc_zap.ReplaceGrpcLogger(zapLogger)
 
 	grpcOpts = append(grpcOpts, grpc.StreamInterceptor(

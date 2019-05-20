@@ -12,6 +12,7 @@ type Config struct {
 	Certificate string
 	Key         string
 	DestDir     string
+	LogDir      string
 }
 
 func (cfg *Config) validate() error {
@@ -20,5 +21,10 @@ func (cfg *Config) validate() error {
 	}
 
 	_, err := os.Stat(cfg.DestDir)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(cfg.LogDir)
 	return err
 }

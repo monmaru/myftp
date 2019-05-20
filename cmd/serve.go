@@ -31,6 +31,11 @@ func Serve() cli.Command {
 				Usage: "Destrination directory",
 				Value: "/tmp",
 			},
+			&cli.StringFlag{
+				Name:  "log",
+				Usage: "Log directory",
+				Value: ".",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			cfg := server.Config{
@@ -38,6 +43,7 @@ func Serve() cli.Command {
 				Certificate: c.String("cert"),
 				Key:         c.String("key"),
 				DestDir:     c.String("d"),
+				LogDir:      c.String("log"),
 			}
 
 			close, err := server.Listen(cfg)
