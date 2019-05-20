@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/monmaru/myftp/client"
@@ -43,8 +44,12 @@ func Upload() cli.Command {
 			})
 			if err != nil {
 				log.Println(err)
+				return err
 			}
-			return err
+
+			fmt.Println("")
+			fmt.Println(" Upload done!")
+			return nil
 		},
 	}
 }
