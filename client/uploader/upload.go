@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/hashicorp/go-multierror"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 // Uploader ...
