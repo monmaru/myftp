@@ -42,7 +42,7 @@ func Listen(cfg Config) (func(), error) {
 			grpc_zap.StreamServerInterceptor(zapLogger),
 			grpc_recovery.StreamServerInterceptor(
 				grpc_recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-					zapLogger.Fatal(fmt.Sprintf("panic: %+v\n", p))
+					zapLogger.Error(fmt.Sprintf("panic: %+v\n", p))
 					return grpc.Errorf(codes.Internal, "Unexpected error")
 				}),
 			),
@@ -91,7 +91,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		fileData, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
-				break
+				goto END
 			}
 			return errors.Wrap(err, "Failed reading chunks from stream")
 		}
@@ -124,6 +124,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		}
 	}
 
+END:
 	if err := stream.SendAndClose(&proto.UploadResponse{
 		Message: "Upload received with success",
 		Status:  proto.UploadStatus_OK,
