@@ -1,4 +1,4 @@
-package uploader
+package client
 
 import (
 	"context"
@@ -17,7 +17,6 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-// Uploader ...
 type Uploader interface {
 	UploadFiles(ctx context.Context) error
 }
@@ -29,8 +28,8 @@ type uploaderImpl struct {
 	pool        *pb.Pool
 }
 
-//New returns Uploader
-func New(cli proto.FtpClient, dir string, parallelism int) Uploader {
+//NewUploader returns Uploader
+func NewUploader(cli proto.FtpClient, dir string, parallelism int) Uploader {
 	return &uploaderImpl{
 		cli:         cli,
 		dir:         dir,
@@ -149,7 +148,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 		return err
 	}
 
-	if resp.Status != proto.UploadStatus_OK {
+	if resp.Status != proto.UploadResponse_OK {
 		bar.FinishPrint(fmt.Sprintf("Failed uploading %s : %s", path, resp.Message))
 		return errors.New(resp.Message)
 	}

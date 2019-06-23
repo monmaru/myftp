@@ -1,12 +1,15 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 
+	"github.com/golang/protobuf/ptypes"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -99,7 +102,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		if len(fileData.FileName) == 0 {
 			stream.SendAndClose(&proto.UploadResponse{
 				Message: "FileName is empty",
-				Status:  proto.UploadStatus_FAILED,
+				Status:  proto.UploadResponse_FAILED,
 			})
 			return errors.New("FileName is empty")
 		}
@@ -109,7 +112,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 			if err != nil {
 				stream.SendAndClose(&proto.UploadResponse{
 					Message: fmt.Sprintf("Failed to create file : %s", fileData.FileName),
-					Status:  proto.UploadStatus_FAILED,
+					Status:  proto.UploadResponse_FAILED,
 				})
 				return err
 			}
@@ -118,7 +121,7 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		if _, err := f.Write(fileData.Content); err != nil {
 			stream.SendAndClose(&proto.UploadResponse{
 				Message: fmt.Sprintf("Failed to write file : %s", fileData.FileName),
-				Status:  proto.UploadStatus_FAILED,
+				Status:  proto.UploadResponse_FAILED,
 			})
 			return err
 		}
@@ -127,12 +130,43 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 END:
 	if err := stream.SendAndClose(&proto.UploadResponse{
 		Message: "Upload received with success",
-		Status:  proto.UploadStatus_OK,
+		Status:  proto.UploadResponse_OK,
 	}); err != nil {
 		return err
 	}
 
 	s.logger.Info("-------- Finished upload function --------")
+	return nil
+}
+
+func (s *ftpServer) ListFiles(context.Context, *proto.ListRequest) (*proto.ListResponse, error) {
+	fis, err := ioutil.ReadDir(s.destDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []*proto.FileInfo
+	for _, fi := range fis {
+		if fi.IsDir() {
+			continue
+		}
+
+		ts, err := ptypes.TimestampProto(fi.ModTime())
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, &proto.FileInfo{
+			Name:      fi.Name(),
+			Size:      fi.Size(),
+			UpdatedAt: ts,
+			Type:      proto.FileInfo_FILE,
+		})
+	}
+	return &proto.ListResponse{Files: files}, nil
+}
+
+func (s *ftpServer) Download(*proto.DownloadRequest, proto.Ftp_DownloadServer) error {
 	return nil
 }
 

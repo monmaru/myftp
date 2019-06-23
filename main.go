@@ -13,6 +13,8 @@ func main() {
 	app.Commands = []cli.Command{
 		cmd.Upload(),
 		cmd.Serve(),
+		cmd.Download(),
+		cmd.List(),
 	}
 	app.Run(os.Args)
 }

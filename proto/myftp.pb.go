@@ -5,11 +5,11 @@ package proto
 
 import (
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -23,37 +23,65 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type UploadStatus int32
+type UploadResponse_Status int32
 
 const (
-	UploadStatus_UNKNOWN UploadStatus = 0
-	UploadStatus_OK      UploadStatus = 1
-	UploadStatus_FAILED  UploadStatus = 2
+	UploadResponse_UNKNOWN UploadResponse_Status = 0
+	UploadResponse_OK      UploadResponse_Status = 1
+	UploadResponse_FAILED  UploadResponse_Status = 2
 )
 
-var UploadStatus_name = map[int32]string{
+var UploadResponse_Status_name = map[int32]string{
 	0: "UNKNOWN",
 	1: "OK",
 	2: "FAILED",
 }
 
-var UploadStatus_value = map[string]int32{
+var UploadResponse_Status_value = map[string]int32{
 	"UNKNOWN": 0,
 	"OK":      1,
 	"FAILED":  2,
 }
 
-func (x UploadStatus) String() string {
-	return proto.EnumName(UploadStatus_name, int32(x))
+func (x UploadResponse_Status) String() string {
+	return proto.EnumName(UploadResponse_Status_name, int32(x))
 }
 
-func (UploadStatus) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_07d33c66d3c1a633, []int{0}
+func (UploadResponse_Status) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{1, 0}
+}
+
+type FileInfo_Type int32
+
+const (
+	FileInfo_UNKNOWN   FileInfo_Type = 0
+	FileInfo_FILE      FileInfo_Type = 1
+	FileInfo_DIRECTORY FileInfo_Type = 2
+)
+
+var FileInfo_Type_name = map[int32]string{
+	0: "UNKNOWN",
+	1: "FILE",
+	2: "DIRECTORY",
+}
+
+var FileInfo_Type_value = map[string]int32{
+	"UNKNOWN":   0,
+	"FILE":      1,
+	"DIRECTORY": 2,
+}
+
+func (x FileInfo_Type) String() string {
+	return proto.EnumName(FileInfo_Type_name, int32(x))
+}
+
+func (FileInfo_Type) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{6, 0}
 }
 
 type UploadRequest struct {
-	Content              []byte   `protobuf:"bytes,1,opt,name=Content,proto3" json:"Content,omitempty"`
-	FileName             string   `protobuf:"bytes,2,opt,name=FileName,proto3" json:"FileName,omitempty"`
+	Content              []byte   `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	FileName             string   `protobuf:"bytes,2,opt,name=fileName,proto3" json:"fileName,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -99,11 +127,11 @@ func (m *UploadRequest) GetFileName() string {
 }
 
 type UploadResponse struct {
-	Message              string       `protobuf:"bytes,1,opt,name=Message,proto3" json:"Message,omitempty"`
-	Status               UploadStatus `protobuf:"varint,2,opt,name=Status,proto3,enum=proto.UploadStatus" json:"Status,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Message              string                `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Status               UploadResponse_Status `protobuf:"varint,2,opt,name=status,proto3,enum=proto.UploadResponse_Status" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
 func (m *UploadResponse) Reset()         { *m = UploadResponse{} }
@@ -138,37 +166,269 @@ func (m *UploadResponse) GetMessage() string {
 	return ""
 }
 
-func (m *UploadResponse) GetStatus() UploadStatus {
+func (m *UploadResponse) GetStatus() UploadResponse_Status {
 	if m != nil {
 		return m.Status
 	}
-	return UploadStatus_UNKNOWN
+	return UploadResponse_UNKNOWN
+}
+
+type DownloadRequest struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DownloadRequest) Reset()         { *m = DownloadRequest{} }
+func (m *DownloadRequest) String() string { return proto.CompactTextString(m) }
+func (*DownloadRequest) ProtoMessage()    {}
+func (*DownloadRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{2}
+}
+
+func (m *DownloadRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DownloadRequest.Unmarshal(m, b)
+}
+func (m *DownloadRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DownloadRequest.Marshal(b, m, deterministic)
+}
+func (m *DownloadRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DownloadRequest.Merge(m, src)
+}
+func (m *DownloadRequest) XXX_Size() int {
+	return xxx_messageInfo_DownloadRequest.Size(m)
+}
+func (m *DownloadRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DownloadRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DownloadRequest proto.InternalMessageInfo
+
+func (m *DownloadRequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type DownloadResponse struct {
+	Content              []byte   `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DownloadResponse) Reset()         { *m = DownloadResponse{} }
+func (m *DownloadResponse) String() string { return proto.CompactTextString(m) }
+func (*DownloadResponse) ProtoMessage()    {}
+func (*DownloadResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{3}
+}
+
+func (m *DownloadResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DownloadResponse.Unmarshal(m, b)
+}
+func (m *DownloadResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DownloadResponse.Marshal(b, m, deterministic)
+}
+func (m *DownloadResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DownloadResponse.Merge(m, src)
+}
+func (m *DownloadResponse) XXX_Size() int {
+	return xxx_messageInfo_DownloadResponse.Size(m)
+}
+func (m *DownloadResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_DownloadResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DownloadResponse proto.InternalMessageInfo
+
+func (m *DownloadResponse) GetContent() []byte {
+	if m != nil {
+		return m.Content
+	}
+	return nil
+}
+
+type ListRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListRequest) Reset()         { *m = ListRequest{} }
+func (m *ListRequest) String() string { return proto.CompactTextString(m) }
+func (*ListRequest) ProtoMessage()    {}
+func (*ListRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{4}
+}
+
+func (m *ListRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListRequest.Unmarshal(m, b)
+}
+func (m *ListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListRequest.Marshal(b, m, deterministic)
+}
+func (m *ListRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListRequest.Merge(m, src)
+}
+func (m *ListRequest) XXX_Size() int {
+	return xxx_messageInfo_ListRequest.Size(m)
+}
+func (m *ListRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListRequest proto.InternalMessageInfo
+
+type ListResponse struct {
+	Files                []*FileInfo `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *ListResponse) Reset()         { *m = ListResponse{} }
+func (m *ListResponse) String() string { return proto.CompactTextString(m) }
+func (*ListResponse) ProtoMessage()    {}
+func (*ListResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{5}
+}
+
+func (m *ListResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListResponse.Unmarshal(m, b)
+}
+func (m *ListResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListResponse.Marshal(b, m, deterministic)
+}
+func (m *ListResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListResponse.Merge(m, src)
+}
+func (m *ListResponse) XXX_Size() int {
+	return xxx_messageInfo_ListResponse.Size(m)
+}
+func (m *ListResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListResponse proto.InternalMessageInfo
+
+func (m *ListResponse) GetFiles() []*FileInfo {
+	if m != nil {
+		return m.Files
+	}
+	return nil
+}
+
+type FileInfo struct {
+	Name                 string               `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Size                 int64                `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	Type                 FileInfo_Type        `protobuf:"varint,3,opt,name=type,proto3,enum=proto.FileInfo_Type" json:"type,omitempty"`
+	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *FileInfo) Reset()         { *m = FileInfo{} }
+func (m *FileInfo) String() string { return proto.CompactTextString(m) }
+func (*FileInfo) ProtoMessage()    {}
+func (*FileInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07d33c66d3c1a633, []int{6}
+}
+
+func (m *FileInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FileInfo.Unmarshal(m, b)
+}
+func (m *FileInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FileInfo.Marshal(b, m, deterministic)
+}
+func (m *FileInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FileInfo.Merge(m, src)
+}
+func (m *FileInfo) XXX_Size() int {
+	return xxx_messageInfo_FileInfo.Size(m)
+}
+func (m *FileInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_FileInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FileInfo proto.InternalMessageInfo
+
+func (m *FileInfo) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *FileInfo) GetSize() int64 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
+
+func (m *FileInfo) GetType() FileInfo_Type {
+	if m != nil {
+		return m.Type
+	}
+	return FileInfo_UNKNOWN
+}
+
+func (m *FileInfo) GetUpdatedAt() *timestamp.Timestamp {
+	if m != nil {
+		return m.UpdatedAt
+	}
+	return nil
 }
 
 func init() {
-	proto.RegisterEnum("proto.UploadStatus", UploadStatus_name, UploadStatus_value)
+	proto.RegisterEnum("proto.UploadResponse_Status", UploadResponse_Status_name, UploadResponse_Status_value)
+	proto.RegisterEnum("proto.FileInfo_Type", FileInfo_Type_name, FileInfo_Type_value)
 	proto.RegisterType((*UploadRequest)(nil), "proto.UploadRequest")
 	proto.RegisterType((*UploadResponse)(nil), "proto.UploadResponse")
+	proto.RegisterType((*DownloadRequest)(nil), "proto.DownloadRequest")
+	proto.RegisterType((*DownloadResponse)(nil), "proto.DownloadResponse")
+	proto.RegisterType((*ListRequest)(nil), "proto.ListRequest")
+	proto.RegisterType((*ListResponse)(nil), "proto.ListResponse")
+	proto.RegisterType((*FileInfo)(nil), "proto.FileInfo")
 }
 
 func init() { proto.RegisterFile("myftp.proto", fileDescriptor_07d33c66d3c1a633) }
 
 var fileDescriptor_07d33c66d3c1a633 = []byte{
-	// 222 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xce, 0xad, 0x4c, 0x2b,
-	0x29, 0xd0, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53, 0x4a, 0xae, 0x5c, 0xbc, 0xa1,
-	0x05, 0x39, 0xf9, 0x89, 0x29, 0x41, 0xa9, 0x85, 0xa5, 0xa9, 0xc5, 0x25, 0x42, 0x12, 0x5c, 0xec,
-	0xce, 0xf9, 0x79, 0x25, 0xa9, 0x79, 0x25, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0x3c, 0x41, 0x30, 0xae,
-	0x90, 0x14, 0x17, 0x87, 0x5b, 0x66, 0x4e, 0xaa, 0x5f, 0x62, 0x6e, 0xaa, 0x04, 0x93, 0x02, 0xa3,
-	0x06, 0x67, 0x10, 0x9c, 0xaf, 0x14, 0xce, 0xc5, 0x07, 0x33, 0xa6, 0xb8, 0x20, 0x3f, 0xaf, 0x38,
-	0x15, 0x64, 0x8e, 0x6f, 0x6a, 0x71, 0x71, 0x62, 0x7a, 0x2a, 0xd8, 0x1c, 0xce, 0x20, 0x18, 0x57,
-	0x48, 0x9b, 0x8b, 0x2d, 0xb8, 0x24, 0xb1, 0xa4, 0xb4, 0x18, 0x6c, 0x0a, 0x9f, 0x91, 0x30, 0xc4,
-	0x45, 0x7a, 0x10, 0x03, 0x20, 0x52, 0x41, 0x50, 0x25, 0x5a, 0xfa, 0x5c, 0x3c, 0xc8, 0xe2, 0x42,
-	0xdc, 0x5c, 0xec, 0xa1, 0x7e, 0xde, 0x7e, 0xfe, 0xe1, 0x7e, 0x02, 0x0c, 0x42, 0x6c, 0x5c, 0x4c,
-	0xfe, 0xde, 0x02, 0x8c, 0x42, 0x5c, 0x5c, 0x6c, 0x6e, 0x8e, 0x9e, 0x3e, 0xae, 0x2e, 0x02, 0x4c,
-	0x46, 0x76, 0x5c, 0xcc, 0x6e, 0x25, 0x05, 0x42, 0xe6, 0x5c, 0x6c, 0x10, 0x7d, 0x42, 0x22, 0x28,
-	0xc6, 0x43, 0xbd, 0x29, 0x25, 0x8a, 0x26, 0x0a, 0x71, 0xb5, 0x06, 0x63, 0x12, 0x1b, 0x58, 0xdc,
-	0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x42, 0x51, 0x9a, 0xa9, 0x2d, 0x01, 0x00, 0x00,
+	// 452 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xd1, 0x6a, 0xdb, 0x30,
+	0x14, 0x9d, 0x12, 0xd7, 0x8d, 0xaf, 0x9b, 0xd6, 0xdc, 0x75, 0x9b, 0x31, 0x83, 0x05, 0x41, 0xc1,
+	0x83, 0xe2, 0x8e, 0xac, 0x63, 0x7b, 0xd9, 0x43, 0x59, 0x12, 0x08, 0x0d, 0x09, 0x68, 0x29, 0x63,
+	0x8f, 0xee, 0xa2, 0x04, 0x43, 0x6c, 0x79, 0x93, 0xcc, 0xc8, 0x7e, 0x61, 0x9f, 0xb3, 0x5f, 0xd8,
+	0x87, 0x0d, 0x4b, 0xf2, 0xd2, 0xa4, 0x79, 0x92, 0xee, 0xd5, 0xd1, 0xe1, 0xdc, 0x73, 0x2e, 0xf8,
+	0xf9, 0x66, 0xa9, 0xca, 0xa4, 0xfc, 0x21, 0x94, 0xc0, 0x23, 0x7d, 0x44, 0xaf, 0x56, 0x42, 0xac,
+	0xd6, 0xfc, 0x4a, 0x57, 0xf7, 0xd5, 0xf2, 0x4a, 0x65, 0x39, 0x97, 0x2a, 0xcd, 0x2d, 0x8e, 0x0e,
+	0xa1, 0x7b, 0x57, 0xae, 0x45, 0xba, 0x60, 0xfc, 0x7b, 0xc5, 0xa5, 0xc2, 0x10, 0x8e, 0xbf, 0x89,
+	0x42, 0xf1, 0x42, 0x85, 0xa4, 0x47, 0xe2, 0x13, 0xd6, 0x94, 0x18, 0x41, 0x67, 0x99, 0xad, 0xf9,
+	0x34, 0xcd, 0x79, 0xd8, 0xea, 0x91, 0xd8, 0x63, 0xff, 0x6b, 0xfa, 0x9b, 0xc0, 0x69, 0xc3, 0x23,
+	0x4b, 0x51, 0x48, 0x5e, 0x13, 0xe5, 0x5c, 0xca, 0x74, 0xc5, 0x35, 0x91, 0xc7, 0x9a, 0x12, 0xaf,
+	0xc1, 0x95, 0x2a, 0x55, 0x95, 0xd4, 0x34, 0xa7, 0xfd, 0x97, 0x46, 0x4b, 0xb2, 0x4b, 0x90, 0x7c,
+	0xd6, 0x18, 0x66, 0xb1, 0xf4, 0x35, 0xb8, 0xa6, 0x83, 0x3e, 0x1c, 0xdf, 0x4d, 0x6f, 0xa7, 0xb3,
+	0x2f, 0xd3, 0xe0, 0x09, 0xba, 0xd0, 0x9a, 0xdd, 0x06, 0x04, 0x01, 0xdc, 0xd1, 0xcd, 0x78, 0x32,
+	0x1c, 0x04, 0x2d, 0x7a, 0x01, 0x67, 0x03, 0xf1, 0xb3, 0x78, 0x38, 0x16, 0x82, 0x53, 0xd4, 0xc2,
+	0x8d, 0x14, 0x7d, 0xa7, 0x97, 0x10, 0x6c, 0x61, 0x5b, 0xd5, 0x87, 0xc7, 0xa7, 0x5d, 0xf0, 0x27,
+	0x99, 0x54, 0x96, 0x90, 0xbe, 0x83, 0x13, 0x53, 0xda, 0x8f, 0x17, 0x70, 0x54, 0xbb, 0x21, 0x43,
+	0xd2, 0x6b, 0xc7, 0x7e, 0xff, 0xcc, 0xce, 0x34, 0xca, 0xd6, 0x7c, 0x5c, 0x2c, 0x05, 0x33, 0xaf,
+	0xf4, 0x2f, 0x81, 0x4e, 0xd3, 0x3b, 0x24, 0xaa, 0xee, 0xc9, 0xec, 0x97, 0x71, 0xb8, 0xcd, 0xf4,
+	0x1d, 0x63, 0x70, 0xd4, 0xa6, 0xe4, 0x61, 0x5b, 0xdb, 0x75, 0xbe, 0x47, 0x9d, 0xcc, 0x37, 0x25,
+	0x67, 0x1a, 0x81, 0x1f, 0xc0, 0xab, 0xca, 0x45, 0xaa, 0xf8, 0xe2, 0x46, 0x85, 0x4e, 0x8f, 0xc4,
+	0x7e, 0x3f, 0x4a, 0xcc, 0x0e, 0x24, 0xcd, 0x0e, 0x24, 0xf3, 0x66, 0x07, 0xd8, 0x16, 0x4c, 0x2f,
+	0xc1, 0xa9, 0x79, 0x76, 0xcd, 0xed, 0x80, 0x33, 0x1a, 0x4f, 0x86, 0x01, 0xc1, 0x2e, 0x78, 0x83,
+	0x31, 0x1b, 0x7e, 0x9a, 0xcf, 0xd8, 0xd7, 0xa0, 0xd5, 0xff, 0x43, 0xa0, 0x3d, 0x52, 0x25, 0xbe,
+	0x07, 0xd7, 0xa4, 0x86, 0xe7, 0x7b, 0x21, 0x6a, 0x97, 0xa2, 0x67, 0x07, 0xa3, 0x8d, 0x09, 0x5e,
+	0x83, 0x57, 0xdb, 0x57, 0xcf, 0x20, 0x11, 0x2d, 0xea, 0x81, 0xbf, 0xd1, 0xd3, 0x9d, 0x9e, 0x35,
+	0xf9, 0x23, 0x74, 0x9a, 0xc4, 0xf0, 0xb9, 0x05, 0xec, 0x25, 0x1d, 0xbd, 0x78, 0xd4, 0x37, 0x9f,
+	0xdf, 0x90, 0x7b, 0x57, 0xbf, 0xbc, 0xfd, 0x17, 0x00, 0x00, 0xff, 0xff, 0x6b, 0xeb, 0x71, 0x48,
+	0x2a, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -184,6 +444,8 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type FtpClient interface {
 	Upload(ctx context.Context, opts ...grpc.CallOption) (Ftp_UploadClient, error)
+	ListFiles(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	Download(ctx context.Context, in *DownloadRequest, opts ...grpc.CallOption) (Ftp_DownloadClient, error)
 }
 
 type ftpClient struct {
@@ -228,9 +490,52 @@ func (x *ftpUploadClient) CloseAndRecv() (*UploadResponse, error) {
 	return m, nil
 }
 
+func (c *ftpClient) ListFiles(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, "/proto.Ftp/ListFiles", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ftpClient) Download(ctx context.Context, in *DownloadRequest, opts ...grpc.CallOption) (Ftp_DownloadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Ftp_serviceDesc.Streams[1], "/proto.Ftp/Download", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &ftpDownloadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Ftp_DownloadClient interface {
+	Recv() (*DownloadResponse, error)
+	grpc.ClientStream
+}
+
+type ftpDownloadClient struct {
+	grpc.ClientStream
+}
+
+func (x *ftpDownloadClient) Recv() (*DownloadResponse, error) {
+	m := new(DownloadResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // FtpServer is the server API for Ftp service.
 type FtpServer interface {
 	Upload(Ftp_UploadServer) error
+	ListFiles(context.Context, *ListRequest) (*ListResponse, error)
+	Download(*DownloadRequest, Ftp_DownloadServer) error
 }
 
 func RegisterFtpServer(s *grpc.Server, srv FtpServer) {
@@ -263,15 +568,64 @@ func (x *ftpUploadServer) Recv() (*UploadRequest, error) {
 	return m, nil
 }
 
+func _Ftp_ListFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FtpServer).ListFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Ftp/ListFiles",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FtpServer).ListFiles(ctx, req.(*ListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Ftp_Download_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FtpServer).Download(m, &ftpDownloadServer{stream})
+}
+
+type Ftp_DownloadServer interface {
+	Send(*DownloadResponse) error
+	grpc.ServerStream
+}
+
+type ftpDownloadServer struct {
+	grpc.ServerStream
+}
+
+func (x *ftpDownloadServer) Send(m *DownloadResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Ftp_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.Ftp",
 	HandlerType: (*FtpServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListFiles",
+			Handler:    _Ftp_ListFiles_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Upload",
 			Handler:       _Ftp_Upload_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "Download",
+			Handler:       _Ftp_Download_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "myftp.proto",
