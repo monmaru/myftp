@@ -30,18 +30,21 @@ func List() cli.Command {
 			},
 		},
 
-		Action: func(c *cli.Context) error {
-			err := client.List(client.Config{
-				Address:     c.String("a"),
-				Certificate: c.String("cert"),
-				SrcDir:      c.String("d"),
-				Parallelism: 1,
-			})
+		Action: func(ctx *cli.Context) error {
+			c, err := client.New(
+				ctx.String("a"),
+				ctx.String("cert"),
+			)
 
 			if err != nil {
+				return err
+			}
+
+			if err := c.List(); err != nil {
 				log.Println(err)
 				return err
 			}
+
 			return nil
 		},
 	}

@@ -28,7 +28,7 @@ func Serve() cli.Command {
 			},
 			&cli.StringFlag{
 				Name:  "d",
-				Usage: "Destrination directory",
+				Usage: "Destination directory",
 				Value: "/tmp",
 			},
 			&cli.StringFlag{
@@ -37,22 +37,22 @@ func Serve() cli.Command {
 				Value: ".",
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx *cli.Context) error {
 			cfg := server.Config{
-				Address:     c.String("a"),
-				Certificate: c.String("cert"),
-				Key:         c.String("key"),
-				DestDir:     c.String("d"),
-				LogDir:      c.String("log"),
+				Address:     ctx.String("a"),
+				Certificate: ctx.String("cert"),
+				Key:         ctx.String("key"),
+				DestDir:     ctx.String("d"),
+				LogDir:      ctx.String("log"),
 			}
 
-			close, err := server.Listen(cfg)
+			stop, err := server.Listen(cfg)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
 
-			defer close()
+			defer stop()
 			return nil
 		},
 	}

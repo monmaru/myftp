@@ -35,14 +35,17 @@ func Upload() cli.Command {
 				Usage: "num of goroutines",
 			},
 		},
-		Action: func(c *cli.Context) error {
-			err := client.Upload(client.Config{
-				Address:     c.String("a"),
-				Certificate: c.String("cert"),
-				SrcDir:      c.String("d"),
-				Parallelism: c.Int("p"),
-			})
+		Action: func(ctx *cli.Context) error {
+			c, err := client.New(
+				ctx.String("a"),
+				ctx.String("cert"),
+			)
+
 			if err != nil {
+				return err
+			}
+
+			if err := c.Upload(ctx.String("d"), ctx.Int("p")); err != nil {
 				log.Println(err)
 				return err
 			}

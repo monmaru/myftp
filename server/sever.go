@@ -5,20 +5,22 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/golang/protobuf/ptypes"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 )
 
 // Listen ...
@@ -27,7 +29,7 @@ func Listen(cfg Config) (func(), error) {
 		return nil, err
 	}
 
-	grpcOpts := []grpc.ServerOption{}
+	var grpcOpts []grpc.ServerOption
 	if cfg.Certificate != "" && cfg.Key != "" {
 		grpcCreds, err := credentials.NewServerTLSFromFile(cfg.Certificate, cfg.Key)
 		if err != nil {
@@ -38,15 +40,15 @@ func Listen(cfg Config) (func(), error) {
 	}
 
 	zapLogger := newFileRotateLogger(filepath.Join(cfg.LogDir, "ftp.log"))
-	grpc_zap.ReplaceGrpcLogger(zapLogger)
+	grpczap.ReplaceGrpcLogger(zapLogger)
 
 	grpcOpts = append(grpcOpts, grpc.StreamInterceptor(
-		grpc_middleware.ChainStreamServer(
-			grpc_zap.StreamServerInterceptor(zapLogger),
-			grpc_recovery.StreamServerInterceptor(
-				grpc_recovery.WithRecoveryHandler(func(p interface{}) (err error) {
+		grpcmiddleware.ChainStreamServer(
+			grpczap.StreamServerInterceptor(zapLogger),
+			grpcrecovery.StreamServerInterceptor(
+				grpcrecovery.WithRecoveryHandler(func(p interface{}) (err error) {
 					zapLogger.Error(fmt.Sprintf("panic: %+v\n", p))
-					return grpc.Errorf(codes.Internal, "Unexpected error")
+					return status.Errorf(codes.Internal, "Unexpected error")
 				}),
 			),
 		),
@@ -71,7 +73,9 @@ func Listen(cfg Config) (func(), error) {
 
 	return func() {
 		grpcServer.Stop()
-		zapLogger.Sync()
+		if err := zapLogger.Sync(); err != nil {
+			log.Println(err)
+		}
 	}, nil
 }
 
@@ -82,11 +86,14 @@ type ftpServer struct {
 
 // Upload ...
 func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
-	s.logger.Info("-------- Start upload function --------")
+	s.logger.Info("-------- Start Upload --------")
+	defer s.logger.Info("-------- Finished Upload --------")
 	var f *os.File
 	defer func() {
 		if f != nil {
-			f.Close()
+			if err := f.Close(); err != nil {
+				s.logger.Error(fmt.Sprintf("Failed close file: %v", err))
+			}
 		}
 	}()
 
@@ -94,40 +101,45 @@ func (s *ftpServer) Upload(stream proto.Ftp_UploadServer) error {
 		fileData, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
-				goto END
+				break
 			}
 			return errors.Wrap(err, "Failed reading chunks from stream")
 		}
 
 		if len(fileData.FileName) == 0 {
-			stream.SendAndClose(&proto.UploadResponse{
+			if err := stream.SendAndClose(&proto.UploadResponse{
 				Message: "FileName is empty",
 				Status:  proto.UploadResponse_FAILED,
-			})
+			}); err != nil {
+				s.logger.Error(fmt.Sprintf("Failed SendAndClose: %v", err))
+			}
 			return errors.New("FileName is empty")
 		}
 
 		if f == nil {
 			f, err = initFile(filepath.Join(s.destDir, filepath.Base(fileData.FileName)))
 			if err != nil {
-				stream.SendAndClose(&proto.UploadResponse{
+				if err := stream.SendAndClose(&proto.UploadResponse{
 					Message: fmt.Sprintf("Failed to create file : %s", fileData.FileName),
 					Status:  proto.UploadResponse_FAILED,
-				})
+				}); err != nil {
+					s.logger.Error(fmt.Sprintf("Failed SendAndClose: %v", err))
+				}
 				return err
 			}
 		}
 
 		if _, err := f.Write(fileData.Content); err != nil {
-			stream.SendAndClose(&proto.UploadResponse{
+			if err := stream.SendAndClose(&proto.UploadResponse{
 				Message: fmt.Sprintf("Failed to write file : %s", fileData.FileName),
 				Status:  proto.UploadResponse_FAILED,
-			})
+			}); err != nil {
+				s.logger.Error(fmt.Sprintf("Failed SendAndClose: %v", err))
+			}
 			return err
 		}
 	}
 
-END:
 	if err := stream.SendAndClose(&proto.UploadResponse{
 		Message: "Upload received with success",
 		Status:  proto.UploadResponse_OK,
@@ -135,11 +147,13 @@ END:
 		return err
 	}
 
-	s.logger.Info("-------- Finished upload function --------")
 	return nil
 }
 
-func (s *ftpServer) ListFiles(context.Context, *proto.ListRequest) (*proto.ListResponse, error) {
+func (s *ftpServer) ListFiles(ctx context.Context, req *proto.ListRequest) (*proto.ListResponse, error) {
+	s.logger.Info("-------- Start ListFiles --------")
+	defer s.logger.Info("-------- Finished ListFiles --------")
+
 	fis, err := ioutil.ReadDir(s.destDir)
 	if err != nil {
 		return nil, err
@@ -160,13 +174,42 @@ func (s *ftpServer) ListFiles(context.Context, *proto.ListRequest) (*proto.ListR
 			Name:      fi.Name(),
 			Size:      fi.Size(),
 			UpdatedAt: ts,
-			Type:      proto.FileInfo_FILE,
+			Mode:      uint32(fi.Mode()),
 		})
 	}
 	return &proto.ListResponse{Files: files}, nil
 }
 
-func (s *ftpServer) Download(*proto.DownloadRequest, proto.Ftp_DownloadServer) error {
+func (s *ftpServer) Download(r *proto.DownloadRequest, stream proto.Ftp_DownloadServer) error {
+	s.logger.Info("-------- Start Download --------")
+	defer s.logger.Info("-------- Finished Download --------")
+
+	f, err := os.Open(filepath.Join(s.destDir, r.Name))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			s.logger.Error(fmt.Sprintf("Failed close file: %v", err))
+		}
+	}()
+
+	var buf [4096 * 1000]byte
+	for {
+		n, err := f.Read(buf[:])
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		if err := stream.Send(&proto.DownloadResponse{
+			Content: buf[:n],
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

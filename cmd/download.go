@@ -14,8 +14,9 @@ func Download() cli.Command {
 		Usage: "download a file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "name",
-				Usage: "Target file name",
+				Name:  "a",
+				Usage: "Server address",
+				Value: "localhost:5000",
 			},
 			cli.StringFlag{
 				Name:  "d",
@@ -23,32 +24,30 @@ func Download() cli.Command {
 				Value: ".",
 			},
 			&cli.StringFlag{
-				Name:  "a",
-				Usage: "Address to listen",
-				Value: "localhost:5000",
-			},
-			&cli.StringFlag{
-				Name:  "key",
-				Usage: "TLS certificate key",
-			},
-			&cli.StringFlag{
 				Name:  "cert",
 				Usage: "path to the TLS *.crt file",
 			},
+			cli.IntFlag{
+				Name:  "p",
+				Value: 5,
+				Usage: "num of goroutines",
+			},
 		},
-		Action: func(c *cli.Context) error {
-			err := client.Download(
-				client.Config{
-					Address:     c.String("a"),
-					Certificate: c.String("cert"),
-					SrcDir:      c.String("d"),
-					Parallelism: 1,
-				}, c.String("name"))
+		Action: func(ctx *cli.Context) error {
+			c, err := client.New(
+				ctx.String("a"),
+				ctx.String("cert"),
+			)
 
 			if err != nil {
+				return err
+			}
+
+			if err := c.Download(ctx.String("d"), ctx.Int("p")); err != nil {
 				log.Println(err)
 				return err
 			}
+
 			return nil
 		},
 	}

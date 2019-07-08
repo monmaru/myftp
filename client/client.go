@@ -2,9 +2,8 @@ package client
 
 import (
 	"context"
-	"io"
+	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -16,37 +15,50 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// Upload ...
-func Upload(cfg Config) error {
-	if err := cfg.validate(); err != nil {
-		return err
+type Client struct {
+	Address     string
+	Certificate string
+}
+
+func New(address, certificate string) (*Client, error) {
+	if address == "" {
+		return nil, errors.New("Address must be specified")
 	}
 
-	conn, err := makeGRPCConn(cfg.Address, cfg.Certificate)
+	return &Client{Address: address, Certificate: certificate}, nil
+}
+
+// Upload ...
+func (c *Client) Upload(dir string, parallelism int) error {
+	conn, err := c.makeGRPCConn()
 	if err != nil {
 		return errors.Wrap(err, "cannot connect")
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	ctx := context.Background()
 	u := NewUploader(
 		proto.NewFtpClient(conn),
-		cfg.SrcDir,
-		cfg.Parallelism)
+		dir,
+		parallelism)
 	return u.UploadFiles(ctx)
 }
 
 // List ...
-func List(cfg Config) error {
-	if err := cfg.validate(); err != nil {
-		return err
-	}
-
-	conn, err := makeGRPCConn(cfg.Address, cfg.Certificate)
+func (c *Client) List() error {
+	conn, err := c.makeGRPCConn()
 	if err != nil {
 		return errors.Wrap(err, "cannot connect")
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	ctx := context.Background()
 	cli := proto.NewFtpClient(conn)
@@ -83,52 +95,29 @@ func List(cfg Config) error {
 }
 
 // Download ...
-func Download(cfg Config, name string) error {
-	if err := cfg.validate(); err != nil {
-		return err
-	}
-
-	conn, err := makeGRPCConn(cfg.Address, cfg.Certificate)
+func (c *Client) Download(dir string, parallelism int) error {
+	conn, err := c.makeGRPCConn()
 	if err != nil {
 		return errors.Wrap(err, "cannot connect")
 	}
-	defer conn.Close()
 
-	ctx := context.Background()
-	cli := proto.NewFtpClient(conn)
-
-	ftpClient, err := cli.Download(ctx, &proto.DownloadRequest{Name: name})
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(filepath.Join(cfg.SrcDir, name))
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	for {
-		resp, err := ftpClient.Recv()
-		if err == io.EOF {
-			break
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Println(err)
 		}
+	}()
 
-		if err != nil {
-			return err
-		}
-
-		file.Write(resp.Content)
-	}
-
-	return nil
+	d := NewDownloader(
+		proto.NewFtpClient(conn),
+		dir,
+		parallelism)
+	return d.DownloadFiles(context.Background())
 }
 
-func makeGRPCConn(address, certificate string) (*grpc.ClientConn, error) {
-	options := []grpc.DialOption{}
-	if certificate != "" {
-		creds, err := credentials.NewClientTLSFromFile(certificate, "")
+func (c *Client) makeGRPCConn() (*grpc.ClientConn, error) {
+	var options []grpc.DialOption
+	if c.Certificate != "" {
+		creds, err := credentials.NewClientTLSFromFile(c.Certificate, "")
 		if err != nil {
 			return nil, err
 		}
@@ -137,5 +126,5 @@ func makeGRPCConn(address, certificate string) (*grpc.ClientConn, error) {
 		options = append(options, grpc.WithInsecure())
 	}
 
-	return grpc.Dial(address, options...)
+	return grpc.Dial(c.Address, options...)
 }

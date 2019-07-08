@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/hashicorp/go-multierror"
 	"github.com/monmaru/myftp/proto"
 	"github.com/pkg/errors"
@@ -45,7 +46,9 @@ func (u *uploaderImpl) UploadFiles(ctx context.Context) error {
 
 	defer func() {
 		pool.RefreshRate = 500 * time.Millisecond
-		pool.Stop()
+		if err := pool.Stop(); err != nil {
+			log.Println(err)
+		}
 	}()
 
 	u.pool = pool
@@ -103,13 +106,21 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
-	stream, err := u.cli.Upload(ctx, grpc_retry.WithMax(3))
+	stream, err := u.cli.Upload(ctx, grpcretry.WithMax(3))
 	if err != nil {
 		return err
 	}
-	defer stream.CloseSend()
+	defer func() {
+		if err := stream.CloseSend(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	stat, err := f.Stat()
 	if err != nil {
@@ -144,7 +155,7 @@ func (u *uploaderImpl) do(ctx context.Context, path string) error {
 
 	resp, err := stream.CloseAndRecv()
 	if err != nil {
-		bar.FinishPrint(fmt.Sprintf("Failed uploading file : %s", err.Error()))
+		bar.FinishPrint(fmt.Sprintf("Failed uploading file : %v", err))
 		return err
 	}
 
