@@ -19,11 +19,6 @@ func List() cli.Command {
 				Usage: "server address",
 			},
 			cli.StringFlag{
-				Name:  "d",
-				Value: ".",
-				Usage: "base directory",
-			},
-			cli.StringFlag{
 				Name:  "cert",
 				Value: "",
 				Usage: "path to the TLS *.crt file",
